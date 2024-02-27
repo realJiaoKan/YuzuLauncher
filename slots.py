@@ -19,13 +19,13 @@ def add_folder(name, icon_path, banner_path):
     conn.close()
 
 
-def add_app(name, background_path, parent_folder_id, command):
+def add_app(name, background_path, parent_folder_id, command, parameters):
     conn = sqlite3.connect('data.db')
     cursor = conn.cursor()
     cursor.execute('''
-        insert into app_cards (name, background_path, parent_folder_id, command) 
-        values (?, ?, ?, ?)
-        ''', (name, background_path, parent_folder_id, command))
+        insert into app_cards (name, background_path, parent_folder_id, command, parameters) 
+        values (?, ?, ?, ?, ?)
+        ''', (name, background_path, parent_folder_id, command, parameters))
     conn.commit()
     conn.close()
 
@@ -53,7 +53,7 @@ def save_apps(self):
                 widget = row.itemAt(i).widget()
                 if isinstance(widget, QLineEdit):
                     row_data.append(widget.text() if widget.text() != '' else None)
-            add_app(row_data[0], row_data[1], window.folder_id, row_data[2])
+            add_app(row_data[0], row_data[1], window.folder_id, row_data[2], row_data[3])
         refresh_apps(type('_', (object,), {
             'id': window.folder_id
         })())
@@ -79,7 +79,7 @@ def refresh_folders(reverse_order=False):
 
     folderCards = []
     for id, name, icon_path, banner_path in data:
-        folderCard = FolderCard(id, name, icon_path, banner_path)
+        folderCard = FolderCard(id, name, icon_path, banner_path, 'default')
         folderCards.append(folderCard)
 
     window.folderList.refresh(folderCards)
@@ -100,7 +100,7 @@ def refresh_apps(self):
         if parameters is None:
             parameters = ''
         parameters = parameters.split()
-        appCard = AppCard(name, background_path, parent_folder_id, [command], parameters)
+        appCard = AppCard(name, background_path, parent_folder_id, [command], parameters, 'default')
         appCards.append(appCard)
 
     window.appList.refresh(appCards)

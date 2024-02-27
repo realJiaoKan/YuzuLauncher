@@ -14,9 +14,10 @@ def clear_layout(layout):
 
 
 class QMarqueeLabel(QLabel):
-    def __init__(self, text="", parent=None):
+    def __init__(self, text="", parent=None, font='default', font_size=20):
         super().__init__(text, parent)
         self.offset = 0
+        self.setFont(QFont(setting.font[font], font_size))
         self.timer = QTimer(self)
         self.timer.timeout.connect(self._update_offset)
         self.needScrolling = False
@@ -55,12 +56,13 @@ class QMarqueeLabel(QLabel):
 
 
 class FolderCard(QWidget):
-    def __init__(self, id, title, icon_path, banner_path):
+    def __init__(self, id, title, icon_path, banner_path, font='default'):
         super().__init__()
         self.id = id
         self.title = title
         self.icon_path = icon_path
         self.banner_path = banner_path
+        self.font = font
         self.layout = QHBoxLayout()
         self.setStyleSheet("background-color: none;")
 
@@ -76,9 +78,8 @@ class FolderCard(QWidget):
         self.divider.setStyleSheet("background-color: rgba(0, 0, 0, 0);")
 
         # Title
-        self.titleLabel = QLabel(title)
+        self.titleLabel = QMarqueeLabel(title, self, 'default', setting.fontSize['folder_card'])
         self.titleLabel.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        self.titleLabel.setFont(QFont("Arial", setting.fontSize['folder_card']))
 
         # Layout
         self.layout.setContentsMargins(0, 0, 0, 0)
@@ -105,17 +106,18 @@ class FolderCard(QWidget):
         self.divider.setStyleSheet("background-color: none;")
 
     def clone(self):
-        return FolderCard(self.id, self.title, self.icon_path, self.banner_path)
+        return FolderCard(self.id, self.title, self.icon_path, self.banner_path, self.font)
 
 
 class AppCard(QWidget):
-    def __init__(self, title, image_path, parent_folder_id, command, parameters):
+    def __init__(self, title, image_path, parent_folder_id, command, parameters, font='default'):
         super(AppCard, self).__init__()
         self.title = title
         self.image_path = image_path
         self.parent_folder_id = parent_folder_id,
         self.command = command
         self.parameters = parameters
+        self._font = font
         self.setFixedSize(300, 300)
 
         # Background image
@@ -135,7 +137,7 @@ class AppCard(QWidget):
         overlay.setGeometry(0, 200, 300, 100)
 
         # Title
-        self.titleLabel = QMarqueeLabel(title, overlay)
+        self.titleLabel = QMarqueeLabel(title, overlay, font, setting.fontSize['app_card'])
         self.titleLabel.setGeometry(10, 0, 280, 100)
         self.titleLabel.setStyleSheet(f"color: white;"
                                       f"font-size: {setting.fontSize['app_card']}px;"
@@ -150,7 +152,7 @@ class AppCard(QWidget):
         super().mousePressEvent(event)
 
     def clone(self):
-        return AppCard(self.title, self.image_path, self.parent_folder_id, self.command, self.parameters)
+        return AppCard(self.title, self.image_path, self.parent_folder_id, self.command, self.parameters, self._font)
 
 
 class FolderList(QListWidget):
@@ -393,12 +395,15 @@ class AddAppWindow(QWidget):
         self.title1 = QLabel("Name")
         self.title2 = QLabel("Background Path")
         self.title3 = QLabel("Command")
+        self.title4 = QLabel("Parameters")
         self.title1.setFixedWidth(150)
         self.title2.setFixedWidth(300)
         self.title3.setFixedWidth(300)
+        self.title4.setFixedWidth(300)
         self.titles.addWidget(self.title1)
         self.titles.addWidget(self.title2)
         self.titles.addWidget(self.title3)
+        self.titles.addWidget(self.title4)
 
         # Rows
         self.rows = []
@@ -429,12 +434,15 @@ class AddAppWindow(QWidget):
         column1 = QLineEdit()
         column2 = QLineEdit()
         column3 = QLineEdit()
+        column4 = QLineEdit()
         column1.setFixedWidth(150)
         column2.setFixedWidth(300)
         column3.setFixedWidth(300)
+        column4.setFixedWidth(300)
         row.addWidget(column1)
         row.addWidget(column2)
         row.addWidget(column3)
+        row.addWidget(column4)
         self.layout.insertLayout(self.layout.count() - 1, row)
         self.rows.append(row)
 
