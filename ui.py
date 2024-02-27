@@ -1,3 +1,5 @@
+import sys
+
 from PySide6.QtWidgets import (QMainWindow, QMessageBox, QListWidget, QListWidgetItem, QScrollArea,
                                QWidget, QHBoxLayout, QGridLayout, QVBoxLayout, QLabel, QPushButton, QLineEdit)
 from PySide6.QtGui import QIcon, QFont, QEnterEvent, QPixmap, QPainter, QPaintEvent
@@ -284,6 +286,11 @@ class MainWindow(QMainWindow):
         self.menu.items[0].clicked.connect(self.menu.switch)
         self.menu.items[1].clicked.connect(self.addApp)
         self.menu.items[2].clicked.connect(self.addFolder)
+
+        if sys.platform == 'win32':
+            self.menu.addItem(MenuItem('📥', 3, self))
+            self.menu.items[3].clicked.connect(self.import_)
+
         self.menu.hide()
 
         # Layout
@@ -301,6 +308,10 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "Error", "Please select a folder first!")
             return
         self.subWindow = AddAppWindow()
+        self.subWindow.show()
+
+    def import_(self):
+        self.subWindow = Import()
         self.subWindow.show()
 
     def resizeEvent(self, event):
@@ -455,6 +466,28 @@ class AddAppWindow(QWidget):
                 if widget:
                     widget.deleteLater()
             self.layout.removeItem(row)
+
+    def saveData(self):
+        pass  # To be modified in slots.py
+
+
+class Import(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Import")
+        self.layout = QHBoxLayout()
+        self.setLayout(self.layout)
+
+        self.title = QLabel("Path: ")
+        self.path = QLineEdit()
+        self.path.setFixedWidth(300)
+        self.saveButton = QPushButton("Save")
+
+        self.layout.addWidget(self.title)
+        self.layout.addWidget(self.path)
+        self.layout.addWidget(self.saveButton)
+
+        self.saveButton.clicked.connect(self.saveData)
 
     def saveData(self):
         pass  # To be modified in slots.py

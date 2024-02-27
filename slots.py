@@ -1,3 +1,4 @@
+import os.path
 import subprocess
 import sqlite3
 
@@ -120,3 +121,20 @@ FolderCard.clicked = refresh_apps
 AppCard.clicked = run_command
 AddFolderWindow.saveData = save_folders
 AddAppWindow.saveData = save_apps
+
+if sys.platform == 'win32':
+    from importdb import process_folders_and_shortcuts
+
+
+    def import_from_dic(self):
+        try:
+            path = self.path.text()
+            assert os.path.isdir(path)
+            process_folders_and_shortcuts(path)
+            refresh_folders()
+            self.close()
+        except Exception as e:
+            QMessageBox.warning(self, "Error", str(e))
+
+
+    Import.saveData = import_from_dic

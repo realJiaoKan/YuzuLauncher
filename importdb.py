@@ -23,7 +23,7 @@ def insert_app_card(conn, name, command, parent_folder_id):
     return cursor.lastrowid
 
 
-def process_folders_and_shortcuts(root_folder, db_path):
+def process_folders_and_shortcuts(root_folder, db_path='data.db'):
     conn = sqlite3.connect(db_path)
     for folder_name in os.listdir(root_folder):
         folder_path = os.path.join(root_folder, folder_name)
@@ -38,7 +38,7 @@ def process_folders_and_shortcuts(root_folder, db_path):
     conn.close()
 
 
-# Example usage
-db_path = 'data.db'  # Your database file path
-root_folder = 'Game/Galgame'  # Your root folder path
-process_folders_and_shortcuts(root_folder, db_path)
+if __name__ == "__main__":
+    db_path = 'data.db'  # Your database file path
+    root_folder = 'Game/Galgame'  # Your root folder path
+    process_folders_and_shortcuts(root_folder, db_path)
