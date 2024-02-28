@@ -1,7 +1,8 @@
 import sys
 
 from PySide6.QtWidgets import (QMainWindow, QMessageBox, QListWidget, QListWidgetItem, QScrollArea,
-                               QWidget, QHBoxLayout, QGridLayout, QVBoxLayout, QLabel, QPushButton, QLineEdit)
+                               QWidget, QHBoxLayout, QGridLayout, QVBoxLayout, QLabel, QPushButton,
+                               QLineEdit, QMenu)
 from PySide6.QtGui import QIcon, QFont, QPixmap, QPainter, QPaintEvent
 from PySide6.QtCore import Qt, QSize, QTimer, QRect
 
@@ -76,6 +77,7 @@ class FolderCard(QWidget):
         self.banner_path = banner_path
         self.font = font
         self.layout = QHBoxLayout()
+        self.subWindow = None
 
         # Icon
         self.iconLabel = QLabel()
@@ -107,13 +109,34 @@ class FolderCard(QWidget):
             self.clicked()
         super().mousePressEvent(event)
 
+    def contextMenuEvent(self, event):
+        contextMenu = QMenu(self)
+
+        modify = contextMenu.addAction("Modify")
+        remove = contextMenu.addAction("Remove")
+
+        action = contextMenu.exec(self.mapToGlobal(event.pos()))
+
+        if action == modify:
+            self.modify()
+        if action == remove:
+            self.remove()
+
+    def modify(self):
+        self.subWindow = ModifyFolderWindow(self)
+        self.subWindow.show()
+
+    def remove(self):
+        pass
+
     def clone(self):
         return FolderCard(self.id, self.title, self.icon_path, self.banner_path, self.font)
 
 
 class AppCard(QWidget):
-    def __init__(self, title, image_path, parent_folder_id, command, parameters, font='default'):
+    def __init__(self, id, title, image_path, parent_folder_id, command, parameters, font='default'):
         super(AppCard, self).__init__()
+        self.id = id
         self.title = title
         self.image_path = image_path
         self.parent_folder_id = parent_folder_id,
@@ -121,6 +144,7 @@ class AppCard(QWidget):
         self.parameters = parameters
         self._font = font
         self.setFixedSize(300, 300)
+        self.subWindow = None
 
         # Background image
         self.backgroundLabel = QLabel(self)
@@ -153,8 +177,29 @@ class AppCard(QWidget):
             self.clicked()
         super().mousePressEvent(event)
 
+    def contextMenuEvent(self, event):
+        contextMenu = QMenu(self)
+
+        modify = contextMenu.addAction("Modify")
+        remove = contextMenu.addAction("Remove")
+
+        action = contextMenu.exec(self.mapToGlobal(event.pos()))
+
+        if action == modify:
+            self.modify()
+        if action == remove:
+            self.remove()
+
+    def modify(self):
+        self.subWindow = ModifyAppWindow(self)
+        self.subWindow.show()
+
+    def remove(self):
+        pass
+
     def clone(self):
-        return AppCard(self.title, self.image_path, self.parent_folder_id, self.command, self.parameters, self._font)
+        return AppCard(self.id, self.title, self.image_path, self.parent_folder_id, self.command, self.parameters,
+                       self._font)
 
 
 class FolderList(QListWidget):
@@ -526,6 +571,110 @@ class Import(QWidget):
         self.layout.addWidget(self.saveButton)
 
         self.saveButton.clicked.connect(self.saveData)
+
+    def saveData(self):
+        pass  # To be modified in slots.py
+
+
+class ModifyFolderWindow(QWidget):
+    def __init__(self, parent: FolderCard):
+        super().__init__()
+        self.setWindowTitle("Add Folder")
+        self.layout = QVBoxLayout()
+        self.setLayout(self.layout)
+        self.id = parent.id
+
+        # Titles
+        self.titles = QHBoxLayout()
+        self.title1 = QLabel("Name")
+        self.title2 = QLabel("Icon Path")
+        self.title3 = QLabel("Banner Path")
+        self.title1.setFixedWidth(150)
+        self.title2.setFixedWidth(300)
+        self.title3.setFixedWidth(300)
+        self.titles.addWidget(self.title1)
+        self.titles.addWidget(self.title2)
+        self.titles.addWidget(self.title3)
+
+        # LineEdits
+        self.lineEdits = QHBoxLayout()
+        self.column1 = QLineEdit(parent.title if parent.title else '')
+        self.column2 = QLineEdit(parent.icon_path if parent.icon_path else '')
+        self.column3 = QLineEdit(parent.banner_path if parent.banner_path else '')
+        self.column1.setFixedWidth(150)
+        self.column2.setFixedWidth(300)
+        self.column3.setFixedWidth(300)
+        self.lineEdits.addWidget(self.column1)
+        self.lineEdits.addWidget(self.column2)
+        self.lineEdits.addWidget(self.column3)
+
+        # Buttons
+        self.buttons = QHBoxLayout()
+        self.saveButton = QPushButton("Save")
+        self.buttons.addStretch()
+        self.buttons.addWidget(self.saveButton)
+
+        self.saveButton.clicked.connect(self.saveData)
+
+        # Layout
+        self.layout.addLayout(self.titles)
+        self.layout.addLayout(self.lineEdits)
+        self.layout.addLayout(self.buttons)
+
+    def saveData(self):
+        pass  # To be modified in slots.py
+
+
+class ModifyAppWindow(QWidget):
+    def __init__(self, parent: AppCard):
+        super().__init__()
+        self.setWindowTitle("Add App")
+        self.layout = QVBoxLayout()
+        self.setLayout(self.layout)
+        self.id = parent.id
+
+        # Titles
+        self.titles = QHBoxLayout()
+        self.title1 = QLabel("Name")
+        self.title2 = QLabel("Background Path")
+        self.title3 = QLabel("Command")
+        self.title4 = QLabel("Parameters")
+        self.title1.setFixedWidth(150)
+        self.title2.setFixedWidth(300)
+        self.title3.setFixedWidth(300)
+        self.title4.setFixedWidth(300)
+        self.titles.addWidget(self.title1)
+        self.titles.addWidget(self.title2)
+        self.titles.addWidget(self.title3)
+        self.titles.addWidget(self.title4)
+
+        # LineEdits
+        self.lineEdits = QHBoxLayout()
+        self.column1 = QLineEdit(parent.title)
+        self.column2 = QLineEdit(parent.image_path if parent.image_path else '')
+        self.column3 = QLineEdit(' '.join(parent.command) if parent.command else '')
+        self.column4 = QLineEdit(' '.join(parent.parameters) if parent.parameters else '')
+        self.column1.setFixedWidth(150)
+        self.column2.setFixedWidth(300)
+        self.column3.setFixedWidth(300)
+        self.column4.setFixedWidth(300)
+        self.lineEdits.addWidget(self.column1)
+        self.lineEdits.addWidget(self.column2)
+        self.lineEdits.addWidget(self.column3)
+        self.lineEdits.addWidget(self.column4)
+
+        # Buttons
+        self.buttons = QHBoxLayout()
+        self.saveButton = QPushButton("Save")
+        self.buttons.addStretch()
+        self.buttons.addWidget(self.saveButton)
+
+        self.saveButton.clicked.connect(self.saveData)
+
+        # Layout
+        self.layout.addLayout(self.titles)
+        self.layout.addLayout(self.lineEdits)
+        self.layout.addLayout(self.buttons)
 
     def saveData(self):
         pass  # To be modified in slots.py

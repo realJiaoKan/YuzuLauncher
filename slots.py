@@ -46,6 +46,44 @@ def save_folders(self):
         QMessageBox.warning(self, "Error", str(e))
 
 
+def modify_folder(self: ModifyFolderWindow):
+    try:
+        conn = sqlite3.connect('data.db')
+        cursor = conn.cursor()
+        cursor.execute(f"update folder_cards set name = ?, icon_path = ?, banner_path = ? where folder_id = ?",
+                       (self.column1.text() if self.column1.text() != '' else None,
+                        self.column2.text() if self.column2.text() != '' else None,
+                        self.column3.text() if self.column3.text() != '' else None,
+                        self.id))
+        conn.commit()
+        conn.close()
+        refresh_folders()
+        self.close()
+    except Exception as e:
+        QMessageBox.warning(self, "Error", str(e))
+
+
+def remove_folder(self, human_triggered=True):
+    try:
+        if human_triggered:
+            recheck = QMessageBox.question(self, '',
+                                           f'Are you sure to remove {self.title}',
+                                           QMessageBox.Yes | QMessageBox.No,
+                                           QMessageBox.No)
+            if recheck == QMessageBox.No:
+                return
+        conn = sqlite3.connect('data.db')
+        cursor = conn.cursor()
+        cursor.execute(f"delete from folder_cards where folder_id = ?", (self.id,))
+        conn.commit()
+        conn.close()
+        if human_triggered:
+            QMessageBox.information(self, '', f"Removed {self.title}")
+            refresh_folders()
+    except Exception as e:
+        QMessageBox.warning(self, 'Error', str(e))
+
+
 def save_apps(self):
     try:
         for row in self.rows:
@@ -63,12 +101,49 @@ def save_apps(self):
         QMessageBox.warning(self, "Error", str(e))
 
 
-def remove_folder():
-    pass
+def modify_app(self: ModifyAppWindow):
+    try:
+        conn = sqlite3.connect('data.db')
+        cursor = conn.cursor()
+        cursor.execute(
+            f"update app_cards set name = ?, background_path = ?, parent_folder_id = ?, command = ?, parameters = ? where app_id = ?",
+            (self.column1.text() if self.column1.text() != '' else None,
+             self.column2.text() if self.column2.text() != '' else None,
+             window.folder_id,
+             self.column3.text() if self.column3.text() != '' else None,
+             self.column4.text() if self.column4.text() != '' else None,
+             self.id))
+        conn.commit()
+        conn.close()
+        refresh_apps(type('_', (object,), {
+            'id': window.folder_id
+        })())
+        self.close()
+    except Exception as e:
+        QMessageBox.warning(self, "Error", str(e))
 
 
-def remove_app():
-    pass
+def remove_app(self, human_trigger=True):
+    try:
+        if human_trigger:
+            recheck = QMessageBox.question(self, '',
+                                           f'Are you sure to remove {self.title}',
+                                           QMessageBox.Yes | QMessageBox.No,
+                                           QMessageBox.No)
+            if recheck == QMessageBox.No:
+                return
+        conn = sqlite3.connect('data.db')
+        cursor = conn.cursor()
+        cursor.execute(f"delete from app_cards where app_id = ?", (self.id,))
+        conn.commit()
+        conn.close()
+        if human_trigger:
+            QMessageBox.information(self, '', f"Removed {self.title}")
+            refresh_apps(type('_', (object,), {
+                'id': window.folder_id
+            })())
+    except Exception as e:
+        QMessageBox.warning(self, 'Error', str(e))
 
 
 def refresh_folders(reverse_order=False):
@@ -101,7 +176,7 @@ def refresh_apps(self):
         if parameters is None:
             parameters = ''
         parameters = parameters.split()
-        appCard = AppCard(name, background_path, parent_folder_id, [command], parameters, 'default')
+        appCard = AppCard(id, name, background_path, parent_folder_id, [command], parameters, 'default')
         appCards.append(appCard)
 
     window.appList.refresh(appCards)
@@ -117,10 +192,14 @@ def run_command(self):
         subprocess.run(self.command)
 
 
+AddFolderWindow.saveData = save_folders
+ModifyFolderWindow.saveData = modify_folder
+FolderCard.remove = remove_folder
+AddAppWindow.saveData = save_apps
+ModifyAppWindow.saveData = modify_app
+AppCard.remove = remove_app
 FolderCard.clicked = refresh_apps
 AppCard.clicked = run_command
-AddFolderWindow.saveData = save_folders
-AddAppWindow.saveData = save_apps
 
 if sys.platform == 'win32':
     from importdb import process_folders_and_shortcuts
