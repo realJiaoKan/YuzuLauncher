@@ -16,25 +16,41 @@ def clear_layout(layout):
 
 
 class QMarqueeLabel(QLabel):
-    def __init__(self, text="", parent=None, font='default', font_size=20):
+    def __init__(self, text="", parent=None, font='default', font_size=20, always_scroll=False):
         super().__init__(text, parent)
+        self.always_scroll = always_scroll
         self.offset = 0
         self.setFont(QFont(setting.font[font], font_size))
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self._update_offset)
+        self.timer = None
         self.needScrolling = False
-        self.checkNeedForScrolling()
+        if always_scroll:
+            self.timer = QTimer(self)
+            self.timer.timeout.connect(self._update_offset)
+            self.checkNeedForScrolling()
 
     def setText(self, text):
         super().setText(text)
         self.checkNeedForScrolling()
 
-    def resizeEvent(self, event):
-        super().resizeEvent(event)  # Ensure the base class resize event is called
+    def enterEvent(self, event):
+        if self.always_scroll:
+            return
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self._update_offset)
         self.checkNeedForScrolling()
 
-    def checkNeedForScrolling(self):
-        self.needScrolling = self.fontMetrics().horizontalAdvance(self.text()) > self.width()
+    def leaveEvent(self, event):
+        if self.always_scroll:
+            return
+        self.checkNeedForScrolling(False)
+        self.timer = None
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)  # Ensure the base class resize event is called
+
+    def checkNeedForScrolling(self, flag=True):
+        self.needScrolling = (self.fontMetrics().horizontalAdvance(self.text()) > (self.width() - 10)
+                              and (flag or self.always_scroll))
         if self.needScrolling:
             self.timer.start(40)
         else:
@@ -129,7 +145,7 @@ class AppCard(QWidget):
         overlay.setGeometry(0, 200, 300, 100)
 
         # Title
-        self.titleLabel = QMarqueeLabel(title, overlay, font, setting.fontSize['app_card'])
+        self.titleLabel = QMarqueeLabel(title, overlay, font, setting.fontSize['app_card'], True)
         self.titleLabel.setGeometry(10, 0, 280, 100)
         self.titleLabel.setStyleSheet(f"color: white;"
                                       f"font-size: {setting.fontSize['app_card']}px;"
@@ -152,7 +168,7 @@ class FolderList(QListWidget):
 
     def __init__(self):
         super().__init__()
-        self.setFixedWidth(280)
+        self.setFixedWidth(300)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setStyleSheet('''
         QListWidget {
@@ -278,6 +294,8 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.canvas)
         self.layout = QHBoxLayout(self.canvas)
         self.subWindow = None
+        self.pixmap = QPixmap(setting.background)
+        self.resize_needed = True
 
         # Canvas
         self.canvas.setStyleSheet("background-color: rgba(0, 0, 0, 0)")
@@ -337,21 +355,16 @@ class MainWindow(QMainWindow):
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing, True)
-        pixmap = QPixmap(setting.background)
 
-        bgPixmap = pixmap.scaled(self.size(), Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
+        bgPixmap = self.pixmap.scaled(self.size(), Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
         startX = (self.width() - bgPixmap.width()) / 2
         startY = (self.height() - bgPixmap.height()) / 2
 
         painter.drawPixmap(startX, startY, bgPixmap)
+        self.backgroundMask.setGeometry(self.rect())
 
     def resizeEvent(self, event):
         self.menu.updatePosition()
-
-    def eventFilter(self, obj, event):
-        if event.type() == QEvent.MouseButtonPress and self.isExpanded:
-            pass
-        return super().eventFilter(obj, event)
 
 
 class AddFolderWindow(QWidget):
