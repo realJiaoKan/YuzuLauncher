@@ -21,51 +21,45 @@ class QMarqueeLabel(QLabel):
         self.always_scroll = always_scroll
         self.offset = 0
         self.setFont(QFont(setting.font[font], font_size))
-        self.timer = None
-        self.needScrolling = False
-        if always_scroll:
-            self.timer = QTimer(self)
-            self.timer.timeout.connect(self._update_offset)
-            self.checkNeedForScrolling()
+        self.enableScroll = False
+
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self._update_offset)
+        self.timer.start(40)
+
+        self.needScroll = self.fontMetrics().horizontalAdvance(self.text()) > (self.width() - 10)
 
     def setText(self, text):
         super().setText(text)
-        self.checkNeedForScrolling()
+        self._update_offset()
 
     def enterEvent(self, event):
         if self.always_scroll:
             return
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self._update_offset)
-        self.checkNeedForScrolling()
+        self.enableScroll = True
 
     def leaveEvent(self, event):
         if self.always_scroll:
             return
-        self.checkNeedForScrolling(False)
-        self.timer = None
+        self.enableScroll = False
 
     def resizeEvent(self, event):
         super().resizeEvent(event)  # Ensure the base class resize event is called
+        self.needScroll = self.fontMetrics().horizontalAdvance(self.text()) > (self.width() - 10)
 
-    def checkNeedForScrolling(self, flag=True):
-        self.needScrolling = (self.fontMetrics().horizontalAdvance(self.text()) > (self.width() - 10)
-                              and (flag or self.always_scroll))
-        if self.needScrolling:
+    def _update_offset(self):
+        if self.needScroll and (self.enableScroll or self.always_scroll):
+            self.offset -= 1  # Adjust scrolling speed here
+            if self.offset < -self.fontMetrics().horizontalAdvance(self.text()):
+                self.offset = self.width()
+            self.update()
             self.timer.start(40)
         else:
-            self.timer.stop()
             self.offset = 0
             self.update()
 
-    def _update_offset(self):
-        self.offset -= 1  # Adjust scrolling speed here
-        if self.offset < -self.fontMetrics().horizontalAdvance(self.text()):
-            self.offset = self.width()
-        self.update()
-
     def paintEvent(self, event: QPaintEvent):
-        if self.needScrolling:
+        if self.needScroll and (self.enableScroll or self.always_scroll):
             painter = QPainter(self)
             textWidth = self.fontMetrics().horizontalAdvance(self.text())
             painter.drawText(QRect(self.offset, 0, textWidth, self.height()), self.alignment(), self.text())
