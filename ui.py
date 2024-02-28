@@ -2,8 +2,8 @@ import sys
 
 from PySide6.QtWidgets import (QMainWindow, QMessageBox, QListWidget, QListWidgetItem, QScrollArea,
                                QWidget, QHBoxLayout, QGridLayout, QVBoxLayout, QLabel, QPushButton, QLineEdit)
-from PySide6.QtGui import QIcon, QFont, QEnterEvent, QPixmap, QPainter, QPaintEvent, QPalette, QBrush
-from PySide6.QtCore import Qt, QSize, QTimer, QRect, QEvent
+from PySide6.QtGui import QIcon, QFont, QPixmap, QPainter, QPaintEvent
+from PySide6.QtCore import Qt, QSize, QTimer, QRect
 
 from setting import setting, SettingMenu
 

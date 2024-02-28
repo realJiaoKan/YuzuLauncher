@@ -9,7 +9,7 @@ from gendb import gendb
 class Setting:
     def __init__(self):
         self.fontPath = {
-            'default': "hanzipen.ttf"
+            'default': "TekitouPoem.ttf"
         }
         self.font = {
         }
@@ -56,7 +56,7 @@ class Setting:
         with open('settings.json', 'r') as f:
             data = json.load(f)
         self.fontPath = data.get('font', {
-            'default': "hanzipen.ttf"
+            'default': "TekitouPoem.ttf"
         })
         self.fontSize = data.get('fontSize', {
             'folder_card': 20,
