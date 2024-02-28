@@ -11,8 +11,9 @@ from setting import setting
 if __name__ == "__main__":
     if not os.path.exists("data.db"):
         gendb()
-    fontId = QFontDatabase.addApplicationFont(os.path.abspath("hanzipen.ttf"))
-    fontFamilies = QFontDatabase.applicationFontFamilies(fontId)
-    setting.font['default'] = fontFamilies[0]
+    for key, value in setting.fontPath.items():
+        fontId = QFontDatabase.addApplicationFont(os.path.abspath(value))
+        fontFamilies = QFontDatabase.applicationFontFamilies(fontId)
+        setting.font[key] = fontFamilies[0]
     refresh_folders()
     sys.exit(app.exec())

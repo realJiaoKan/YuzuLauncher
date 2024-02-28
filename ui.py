@@ -2,10 +2,10 @@ import sys
 
 from PySide6.QtWidgets import (QMainWindow, QMessageBox, QListWidget, QListWidgetItem, QScrollArea,
                                QWidget, QHBoxLayout, QGridLayout, QVBoxLayout, QLabel, QPushButton, QLineEdit)
-from PySide6.QtGui import QIcon, QFont, QEnterEvent, QPixmap, QPainter, QPaintEvent
+from PySide6.QtGui import QIcon, QFont, QEnterEvent, QPixmap, QPainter, QPaintEvent, QPalette, QBrush
 from PySide6.QtCore import Qt, QSize, QTimer, QRect, QEvent
 
-from setting import setting
+from setting import setting, SettingMenu
 
 TEST_FLAG = True
 
@@ -66,7 +66,6 @@ class FolderCard(QWidget):
         self.banner_path = banner_path
         self.font = font
         self.layout = QHBoxLayout()
-        self.setStyleSheet("background-color: none;")
 
         # Icon
         self.iconLabel = QLabel()
@@ -77,7 +76,6 @@ class FolderCard(QWidget):
         # Divider
         self.divider = QLabel()
         self.divider.setFixedWidth(10)
-        self.divider.setStyleSheet("background-color: rgba(0, 0, 0, 0);")
 
         # Title
         self.titleLabel = QMarqueeLabel(title, self, 'default', setting.fontSize['folder_card'])
@@ -98,14 +96,6 @@ class FolderCard(QWidget):
         if event.button() == Qt.LeftButton:
             self.clicked()
         super().mousePressEvent(event)
-
-    def enterEvent(self, event: QEnterEvent):
-        self.setStyleSheet("background-color: rgb(30, 30, 30);")
-        self.divider.setStyleSheet("background-color: rgb(30, 30, 30);")
-
-    def leaveEvent(self, event: QEnterEvent):
-        self.setStyleSheet("background-color: none;")
-        self.divider.setStyleSheet("background-color: none;")
 
     def clone(self):
         return FolderCard(self.id, self.title, self.icon_path, self.banner_path, self.font)
@@ -163,6 +153,21 @@ class FolderList(QListWidget):
     def __init__(self):
         super().__init__()
         self.setFixedWidth(280)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.setStyleSheet('''
+        QListWidget {
+            background-color: rgba(0, 0, 0, 0);
+        }
+        QListWidget::item {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        QListWidget::item:hover {
+            background-color: rgba(252, 201, 185, 0.5);
+        }
+        QListWidget::item:selected {
+            background-color: rgba(252, 201, 185, 0.5);
+        }
+        ''')
 
     def refresh(self, folderCards=None):
         if folderCards is None:
@@ -190,6 +195,7 @@ class AppList(QScrollArea):
         self.setWidget(self.widget)
         self.setWidgetResizable(True)
         self.layout.setSpacing(50)
+        self.setStyleSheet("background-color: rgba(0, 0, 0, 0)")
 
     def refresh(self, appCards=None):
         if appCards is None:
@@ -219,10 +225,10 @@ class MenuItem(QPushButton):
             """
             QPushButton {
                 border-radius: 25px;
-                background-color: grey;
+                background-color: rgba(0, 0, 0, 0.5);
             }
             QPushButton:hover {
-                background-color: rgba(252,201,185,0.5);
+                background-color: rgba(252, 201, 185, 0.5);
             }
             """
         )
@@ -274,6 +280,7 @@ class MainWindow(QMainWindow):
         self.subWindow = None
 
         # Canvas
+        self.canvas.setStyleSheet("background-color: rgba(0, 0, 0, 0)")
         self.folderList = FolderList()
         self.appList = AppList()
 
@@ -282,14 +289,16 @@ class MainWindow(QMainWindow):
         self.menu.addItem(MenuItem('+', 0, self))
         self.menu.addItem(MenuItem('📱', 1, self))
         self.menu.addItem(MenuItem('🗂️', 2, self))
+        self.menu.addItem(MenuItem('⚙️', 3, self))
 
         self.menu.items[0].clicked.connect(self.menu.switch)
         self.menu.items[1].clicked.connect(self.addApp)
         self.menu.items[2].clicked.connect(self.addFolder)
+        self.menu.items[3].clicked.connect(self.setting)
 
         if sys.platform == 'win32':
-            self.menu.addItem(MenuItem('📥', 3, self))
-            self.menu.items[3].clicked.connect(self.import_)
+            self.menu.addItem(MenuItem('📥', 4, self))
+            self.menu.items[4].clicked.connect(self.import_)
 
         self.menu.hide()
 
@@ -298,6 +307,13 @@ class MainWindow(QMainWindow):
         self.layout.setSpacing(0)
         self.layout.addWidget(self.folderList)
         self.layout.addWidget(self.appList, 1)
+
+        # Extra Stylesheet
+        self.setStyleSheet("background-color: rgba(0, 0, 0, 0);")
+        self.backgroundMask = QWidget(self)
+        self.backgroundMask.setGeometry(self.rect())
+        self.backgroundMask.setStyleSheet(setting.background_mask)
+        self.backgroundMask.lower()
 
     def addFolder(self):
         self.subWindow = AddFolderWindow()
@@ -310,9 +326,24 @@ class MainWindow(QMainWindow):
         self.subWindow = AddAppWindow()
         self.subWindow.show()
 
+    def setting(self):
+        self.subWindow = SettingMenu()
+        self.subWindow.show()
+
     def import_(self):
         self.subWindow = Import()
         self.subWindow.show()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing, True)
+        pixmap = QPixmap(setting.background)
+
+        bgPixmap = pixmap.scaled(self.size(), Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
+        startX = (self.width() - bgPixmap.width()) / 2
+        startY = (self.height() - bgPixmap.height()) / 2
+
+        painter.drawPixmap(startX, startY, bgPixmap)
 
     def resizeEvent(self, event):
         self.menu.updatePosition()
