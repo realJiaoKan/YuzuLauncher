@@ -15,7 +15,7 @@ class Setting:
         }
         self.fontSize = {
             'folder_card': 20,
-            'app_card': 25
+            'app_card': 30
         }
         self.platform = {
             'enable_sudo': False,
@@ -158,7 +158,7 @@ class SettingMenu(QWidget):
 
     def saveData(self):
         setting.fontSize['folder_card'] = int(self.base_font_size.text())
-        setting.fontSize['app_card'] = round(int(self.base_font_size.text()) * 1.25)
+        setting.fontSize['app_card'] = round(int(self.base_font_size.text()) * 1.5)
         setting.mode = self.mode.text()
         setting.background = self.background.text()
         setting.background_mask = self.background_mask.text()
