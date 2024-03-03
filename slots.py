@@ -186,10 +186,11 @@ def run_command(self):
     self.command.extend(self.parameters)
     if setting.platform['enable_sudo']:
         print('[run_command] Run:', sudo + self.command)
-        subprocess.run(sudo + self.command, text=True, input=setting.platform['password'])
+        p = subprocess.Popen(sudo + self.command, text=True, stdin=subprocess.PIPE)
+        p.communicate(setting.platform['password'] + '\n')
     else:
         print('[run_command] Run:', self.command)
-        subprocess.run(self.command)
+        subprocess.Popen(self.command)
 
 
 AddFolderWindow.saveData = save_folders
