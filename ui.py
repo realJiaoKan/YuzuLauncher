@@ -1,8 +1,9 @@
-import sys
+import sys, enum
+from dataclasses import dataclass
 
 from PySide6.QtWidgets import (QMainWindow, QMessageBox, QListWidget, QListWidgetItem, QScrollArea,
                                QWidget, QHBoxLayout, QGridLayout, QVBoxLayout, QLabel, QPushButton,
-                               QLineEdit, QMenu)
+                               QLineEdit, QMenu, QSpacerItem, QSizePolicy)
 from PySide6.QtGui import QIcon, QFont, QPixmap, QPainter, QPaintEvent
 from PySide6.QtCore import Qt, QSize, QTimer, QRect
 
@@ -14,6 +15,32 @@ TEST_FLAG = True
 def clear_layout(layout):
     for i in reversed(range(layout.count())):
         layout.takeAt(i).widget().setParent(None)
+
+
+class Edge(enum.Flag):
+    NoEdge: Qt.Edge = 0
+    TopEdge: Qt.Edge = 1
+    LeftEdge: Qt.Edge = 2
+    RightEdge: Qt.Edge = 3
+    BottomEdge: Qt.Edge = 4
+    LeftTopEdge: Qt.Edge = 5
+    RightTopEdge: Qt.Edge = 6
+    LeftBottomEdge: Qt.Edge = 7
+    RightBottomEdge: Qt.Edge = 8
+
+
+@dataclass
+class EdgePress:
+    leftEdgePress: bool = False
+    rightEdgePress: bool = False
+    topEdgePress: bool = False
+    bottomEdgePress: bool = False
+    leftTopEdgePress: bool = False
+    rightBottomEdgePress: bool = False
+    leftBottomEdgePress: bool = False
+    rightTopEdgePress: bool = False
+    moveEdgePress: bool = False
+    movePosition = None
 
 
 class QMarqueeLabel(QLabel):
@@ -336,6 +363,55 @@ class MainWindow(QMainWindow):
         self.pixmap = QPixmap(setting.background)
         self.resize_needed = True
 
+        self.setMouseTracking(True)
+        self.setAttribute(Qt.WA_TranslucentBackground)
+        self.edge_size = 5
+        self.xRadius = 5
+        self.yRadius = 5
+        self.min_width = 50
+        self.min_height = 50
+        self.edge_press = EdgePress()
+        self.move_event_height = 40
+
+        # Titlebar
+        self.setWindowFlag(Qt.FramelessWindowHint)
+        self.titleBar = QWidget()
+        self.titleLayout = QHBoxLayout()
+        self.titleBar.setLayout(self.titleLayout)
+        self.titleBar.setStyleSheet("background-color: rgba(0, 0, 0, 0)")
+
+        self.titleLabel = QLabel("Yuzu Launcher")
+        self.titleBar.setStyleSheet(
+            """
+            QPushButton {
+                border-radius: 8px;
+            }
+            """
+        )
+        self.closeButton = QPushButton()
+        self.closeButton.setFixedSize(16, 16)
+        self.closeButton.setStyleSheet("background-color: rgb(255, 59, 48);")
+        self.fullScreenButton = QPushButton()
+        self.fullScreenButton.setFixedSize(16, 16)
+        self.fullScreenButton.setStyleSheet("background-color: rgb(255, 149, 0);")
+        self.minimizeButton = QPushButton()
+        self.minimizeButton.setFixedSize(16, 16)
+        self.minimizeButton.setStyleSheet("background-color: rgb(76, 217, 0);")
+
+        self.closeButton.clicked.connect(self.close)
+        self.fullScreenButton.clicked.connect(self.toggleFullScreen)
+        self.minimizeButton.clicked.connect(self.showMinimized)
+
+        self.titleLayout.addWidget(self.closeButton)
+        self.titleLayout.addWidget(self.fullScreenButton)
+        self.titleLayout.addWidget(self.minimizeButton)
+        self.titleLayout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
+        self.titleLayout.addWidget(self.titleLabel)
+        self.titleLayout.addSpacing(self.closeButton.width() * 3)
+        self.titleLayout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
+
+        self.setMenuWidget(self.titleBar)
+
         # Canvas
         self.canvas.setStyleSheet("background-color: rgba(0, 0, 0, 0)")
         self.folderList = FolderList()
@@ -372,6 +448,12 @@ class MainWindow(QMainWindow):
         self.backgroundMask.setStyleSheet(setting.background_mask)
         self.backgroundMask.lower()
 
+    def toggleFullScreen(self):
+        if self.isFullScreen():
+            self.showNormal()
+        else:
+            self.showFullScreen()
+
     def addFolder(self):
         self.subWindow = AddFolderWindow()
         self.subWindow.show()
@@ -402,8 +484,185 @@ class MainWindow(QMainWindow):
         painter.drawPixmap(startX, startY, bgPixmap)
         self.backgroundMask.setGeometry(self.rect())
 
+    def mouseMoveEvent(self, event):
+        if event.buttons() == Qt.MouseButton.NoButton:
+            pos = event.globalPosition().toPoint() - self.pos()
+            edges = self._get_edges(pos)
+
+            if edges == Edge.LeftEdge or edges == Edge.RightEdge:
+                self.setCursor(Qt.SizeHorCursor)
+            elif edges == Edge.TopEdge or edges == Edge.BottomEdge:
+                self.setCursor(Qt.SizeVerCursor)
+            elif edges == Edge.LeftTopEdge or edges == Edge.RightBottomEdge:
+                self.setCursor(Qt.CursorShape.SizeFDiagCursor)
+            elif edges == Edge.LeftBottomEdge or edges == Edge.RightTopEdge:
+                self.setCursor(Qt.CursorShape.SizeBDiagCursor)
+            else:
+                self.setCursor(Qt.CursorShape.ArrowCursor)
+        elif event.buttons() == Qt.MouseButton.LeftButton:
+            if self.edge_press.moveEdgePress:
+                self.move(event.globalPosition().toPoint() - self.edge_press.movePosition)
+            elif self._get_edge_press() is not Edge.NoEdge:
+                self._resize_window(event.globalPosition().toPoint() - self.pos())
+
+    def mousePressEvent(self, event) -> None:
+        pos = event.globalPosition().toPoint() - self.pos()
+        edges = self._get_edges(pos)
+        if edges == Edge.LeftEdge:
+            self.edge_press.leftEdgePress = True
+        elif edges == Edge.RightEdge:
+            self.edge_press.rightEdgePress = True
+        elif edges == Edge.TopEdge:
+            self.edge_press.topEdgePress = True
+        elif edges == Edge.BottomEdge:
+            self.edge_press.bottomEdgePress = True
+        elif edges == Edge.LeftTopEdge:
+            self.edge_press.leftTopEdgePress = True
+        elif edges == Edge.RightBottomEdge:
+            self.edge_press.rightBottomEdgePress = True
+        elif edges == Edge.LeftBottomEdge:
+            self.edge_press.leftBottomEdgePress = True
+        elif edges == Edge.RightTopEdge:
+            self.edge_press.rightTopEdgePress = True
+        else:
+            if self._get_move_edges(pos):
+                self.edge_press.moveEdgePress = True
+                self.edge_press.movePosition = event.globalPosition().toPoint() - self.pos()
+                self.setCursor(Qt.CursorShape.OpenHandCursor)
+
+    def mouseReleaseEvent(self, event) -> None:
+        self.edge_press.leftEdgePress = False
+        self.edge_press.rightEdgePress = False
+        self.edge_press.topEdgePress = False
+        self.edge_press.bottomEdgePress = False
+        self.edge_press.leftTopEdgePress = False
+        self.edge_press.rightBottomEdgePress = False
+        self.edge_press.leftBottomEdgePress = False
+        self.edge_press.rightTopEdgePress = False
+        self.edge_press.moveEdgePress = False
+        self.setCursor(Qt.CursorShape.ArrowCursor)
+
+    def _get_move_edges(self, pos):
+        in_move_edge: bool = pos.y() <= self.move_event_height
+        not_in_edges: bool = self._get_edges(pos) == Edge.NoEdge
+        return in_move_edge and not_in_edges
+
+    def _get_edges(self, pos):
+        edges = Edge.NoEdge
+
+        in_left_edge: bool = pos.x() <= self.edge_size  # 左
+        in_right_edge: bool = pos.x() >= (self.width() - self.edge_size)  # 右
+        in_top_edge: bool = pos.y() <= self.edge_size  # 上
+        in_bottom_edge: bool = pos.y() >= (self.height() - self.edge_size)  # 下
+
+        size = len([i for i in [in_left_edge, in_right_edge, in_top_edge, in_bottom_edge] if i])
+
+        if size == 0:
+            return edges
+        if size == 1:
+            if in_left_edge:
+                return Edge.LeftEdge
+            if in_right_edge:
+                return Edge.RightEdge
+            if in_top_edge:
+                return Edge.TopEdge
+            if in_bottom_edge:
+                return Edge.BottomEdge
+        if size == 2:
+            if in_left_edge and in_top_edge:
+                return Edge.LeftTopEdge
+            if in_left_edge and in_bottom_edge:
+                return Edge.LeftBottomEdge
+            if in_right_edge and in_top_edge:
+                return Edge.RightTopEdge
+            if in_right_edge and in_bottom_edge:
+                return Edge.RightBottomEdge
+
+    def _get_edge_press(self):
+        if self.edge_press.leftEdgePress:
+            return Edge.LeftEdge
+        elif self.edge_press.rightEdgePress:
+            return Edge.RightEdge
+        elif self.edge_press.topEdgePress:
+            return Edge.TopEdge
+        elif self.edge_press.bottomEdgePress:
+            return Edge.BottomEdge
+        elif self.edge_press.leftTopEdgePress:
+            return Edge.LeftTopEdge
+        elif self.edge_press.rightBottomEdgePress:
+            return Edge.RightBottomEdge
+        elif self.edge_press.leftBottomEdgePress:
+            return Edge.LeftBottomEdge
+        elif self.edge_press.rightTopEdgePress:
+            return Edge.RightTopEdge
+        else:
+            return Edge.NoEdge
+
+    def _resize_window(self, pos):
+        edges = self._get_edge_press()
+        geo = self.frameGeometry()
+        x, y, width, height = geo.x(), geo.y(), geo.width(), geo.height()
+        if edges is Edge.LeftEdge:
+            width -= pos.x()
+            if width <= self.min_width:
+                return
+            else:
+                x += pos.x()
+        elif edges is Edge.RightEdge:
+            width = pos.x()
+            if width <= self.min_width:
+                return
+        elif edges is Edge.TopEdge:
+            height -= pos.y()
+            if height <= self.min_height:
+                return
+            else:
+                y += pos.y()
+        elif edges is Edge.BottomEdge:
+            height = pos.y()
+            if height <= self.min_height:
+                return
+        elif edges is Edge.LeftTopEdge:
+            width -= pos.x()
+            if width <= self.min_width:
+                width = geo.width()
+            else:
+                x += pos.x()
+            height -= pos.y()
+            if height <= self.min_height:
+                height = geo.height()
+            else:
+                y += pos.y()
+        elif edges is Edge.LeftBottomEdge:
+            width -= pos.x()
+            if width <= self.min_width:
+                width = geo.width()
+            else:
+                x += pos.x()
+            height = pos.y()
+            if height <= self.min_height:
+                height = geo.height()
+        elif edges is Edge.RightTopEdge:
+            width = pos.x()
+            if width <= self.min_width:
+                width = geo.width()
+            height -= pos.y()
+            if height <= self.min_height:
+                height = geo.height()
+            else:
+                y += pos.y()
+        elif edges is Edge.RightBottomEdge:
+            width = pos.x()
+            if width <= self.min_width:
+                width = geo.width()
+            height = pos.y()
+            if height <= self.min_height:
+                height = geo.height()
+        self.setGeometry(x, y, width, height)
+
     def resizeEvent(self, event):
         self.menu.updatePosition()
+        self.setCursor(Qt.CursorShape.ArrowCursor)
 
 
 class AddFolderWindow(QWidget):

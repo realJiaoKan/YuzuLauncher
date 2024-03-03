@@ -162,4 +162,3 @@ class SettingMenu(QWidget):
         setting.background_mask = self.background_mask.text()
         setting.save_to_file()
         self.close()
-        pass  # To be modified in slots.py
