@@ -9,8 +9,6 @@ from PySide6.QtCore import Qt, QSize, QTimer, QRect
 
 from setting import setting, SettingMenu
 
-TEST_FLAG = True
-
 
 def clear_layout(layout):
     for i in reversed(range(layout.count())):
@@ -716,6 +714,10 @@ class AddFolderWindow(QWidget):
         column1.setFixedWidth(150)
         column2.setFixedWidth(300)
         column3.setFixedWidth(300)
+        column2.setDragEnabled(True)
+        column2.setAcceptDrops(True)
+        column3.setDragEnabled(True)
+        column3.setAcceptDrops(True)
         row.addWidget(column1)
         row.addWidget(column2)
         row.addWidget(column3)
@@ -792,6 +794,10 @@ class AddAppWindow(QWidget):
         column2.setFixedWidth(300)
         column3.setFixedWidth(300)
         column4.setFixedWidth(300)
+        column2.setDragEnabled(True)
+        column2.setAcceptDrops(True)
+        column3.setDragEnabled(True)
+        column3.setAcceptDrops(True)
         row.addWidget(column1)
         row.addWidget(column2)
         row.addWidget(column3)
@@ -823,6 +829,8 @@ class Import(QWidget):
         self.title = QLabel("Path: ")
         self.path = QLineEdit()
         self.path.setFixedWidth(300)
+        self.path.setDragEnabled(True)
+        self.path.setAcceptDrops(True)
         self.saveButton = QPushButton("Save")
 
         self.layout.addWidget(self.title)
@@ -860,6 +868,10 @@ class ModifyFolderWindow(QWidget):
         self.column1 = QLineEdit(parent.title if parent.title else '')
         self.column2 = QLineEdit(parent.icon_path if parent.icon_path else '')
         self.column3 = QLineEdit(parent.banner_path if parent.banner_path else '')
+        self.column2.setDragEnabled(True)
+        self.column2.setAcceptDrops(True)
+        self.column3.setDragEnabled(True)
+        self.column3.setAcceptDrops(True)
         self.column1.setFixedWidth(150)
         self.column2.setFixedWidth(300)
         self.column3.setFixedWidth(300)
@@ -913,6 +925,10 @@ class ModifyAppWindow(QWidget):
         self.column2 = QLineEdit(parent.image_path if parent.image_path else '')
         self.column3 = QLineEdit(' '.join(parent.command) if parent.command else '')
         self.column4 = QLineEdit(' '.join(parent.parameters) if parent.parameters else '')
+        self.column2.setDragEnabled(True)
+        self.column2.setAcceptDrops(True)
+        self.column3.setDragEnabled(True)
+        self.column3.setAcceptDrops(True)
         self.column1.setFixedWidth(150)
         self.column2.setFixedWidth(300)
         self.column3.setFixedWidth(300)

@@ -93,6 +93,8 @@ class SettingMenu(QWidget):
         self.mode.setText(setting.mode)
         self.background = QLineEdit()
         self.background.setText(setting.background)
+        self.background.setDragEnabled(True)
+        self.background.setAcceptDrops(True)
         self.background_mask = QLineEdit()
         self.background_mask.setText(setting.background_mask)
         self.background_mask.setFixedWidth(300)

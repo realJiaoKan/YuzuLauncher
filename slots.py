@@ -193,6 +193,20 @@ def run_command(self):
         subprocess.Popen(self.command)
 
 
+def dragEnterEvent(self, event):
+    if event.mimeData().hasUrls():
+        event.accept()
+    else:
+        event.ignore()
+
+
+def dropEvent(self, event):
+    urls = event.mimeData().urls()
+    if urls:
+        path = urls[0].toLocalFile()
+        self.setText(path)
+
+
 AddFolderWindow.saveData = save_folders
 ModifyFolderWindow.saveData = modify_folder
 FolderCard.remove = remove_folder
@@ -201,6 +215,9 @@ ModifyAppWindow.saveData = modify_app
 AppCard.remove = remove_app
 FolderCard.clicked = refresh_apps
 AppCard.clicked = run_command
+
+QLineEdit.dragEnterEvent = dragEnterEvent
+QLineEdit.dropEvent = dropEvent
 
 if sys.platform == 'win32':
     from importdb import process_folders_and_shortcuts
